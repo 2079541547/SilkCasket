@@ -1,1 +1,0 @@
-/usr/bin/c++ -g "CMakeFiles/example-tool.dir/example/example-tool.cpp.o" -o example-tool  libsilkcasket.a liblz4.a libLZMA2_Fast.a libLizard.a
