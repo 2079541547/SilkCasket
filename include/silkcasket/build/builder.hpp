@@ -40,6 +40,8 @@ namespace SilkCasket::Build::Builder {
 
     using namespace std;
 
+
+
     class Build{
     private:
         SilkCasket::FileStructure::header Header;
