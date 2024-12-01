@@ -1,2 +1,0 @@
-/usr/bin/ar qc libsilkcasket.a CMakeFiles/silkcasket.dir/src/compress/lzw.cpp.o CMakeFiles/silkcasket.dir/src/compress/lz4.cpp.o CMakeFiles/silkcasket.dir/src/compress/lizard.cpp.o "CMakeFiles/silkcasket.dir/src/compress/lzma2-fast.cpp.o" CMakeFiles/silkcasket.dir/src/compress/compress.cpp.o CMakeFiles/silkcasket.dir/src/utils/file.cpp.o CMakeFiles/silkcasket.dir/src/structure/entry.cpp.o CMakeFiles/silkcasket.dir/src/structure/header.cpp.o CMakeFiles/silkcasket.dir/src/build/build.cpp.o CMakeFiles/silkcasket.dir/src/analysis.cpp.o
-/usr/bin/ranlib libsilkcasket.a
