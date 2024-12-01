@@ -22,6 +22,7 @@
  *******************************************************************************/
 
 #include <compress/lzw.hpp>
+#include <log.hpp>
 
 std::vector<uint8_t> SilkCasket::Compress::LZW::encodeVLE(uint32_t value) {
     std::vector<uint8_t> encoded;

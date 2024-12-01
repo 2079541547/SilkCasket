@@ -35,6 +35,8 @@
 #include <algorithm>
 #include <filesystem>
 
+size_t BlockSize = 8096 * 1024;
+
 std::vector<uint8_t> compressData(const std::vector<uint8_t>& data, SilkCasket::Compress::Mode::Mode mode) {
     using namespace SilkCasket::Compress::Mode;
 
@@ -50,7 +52,7 @@ std::vector<uint8_t> compressData(const std::vector<uint8_t>& data, SilkCasket::
         }
         case LZMA2FAST: {
             std::vector<uint8_t> result;
-            auto _a = SilkCasket::Compress::LZMA2_Fast::compress(data);
+            auto _a = SilkCasket::Compress::LZMA2_Fast::compress(data, BlockSize);
             int modeValue = static_cast<int>(mode);
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&modeValue), reinterpret_cast<const uint8_t*>(&modeValue) + sizeof(int));
             result.insert(result.end(), _a.begin(), _a.end());
@@ -58,7 +60,7 @@ std::vector<uint8_t> compressData(const std::vector<uint8_t>& data, SilkCasket::
         }
         case LZ4: {
             std::vector<uint8_t> result;
-            auto _a = SilkCasket::Compress::LZ4::compress(data);
+            auto _a = SilkCasket::Compress::LZ4::compress(data, BlockSize);
             int modeValue = static_cast<int>(mode);
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&modeValue), reinterpret_cast<const uint8_t*>(&modeValue) + sizeof(int));
             result.insert(result.end(), _a.begin(), _a.end());
@@ -74,7 +76,7 @@ std::vector<uint8_t> compressData(const std::vector<uint8_t>& data, SilkCasket::
         }
         case LIZARD: {
             std::vector<uint8_t> result;
-            auto _a = SilkCasket::Compress::Lizard::compress(data);
+            auto _a = SilkCasket::Compress::Lizard::compress(data, BlockSize);
             int modeValue = static_cast<int>(mode);
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&modeValue), reinterpret_cast<const uint8_t*>(&modeValue) + sizeof(int));
             result.insert(result.end(), _a.begin(), _a.end());
@@ -99,8 +101,9 @@ asyncCompressData(const std::vector<uint8_t>& data, SilkCasket::Compress::Mode::
     });
 }
 
-std::vector<uint8_t> SilkCasket::Compress::smartCompress(const std::filesystem::path& inputFile, const SilkCasket::Compress::Mode::MODE& compress) {
+std::vector<uint8_t> SilkCasket::Compress::smartCompress(const std::filesystem::path& inputFile, const SilkCasket::Compress::Mode::MODE& compress, size_t blockSize) {
     using namespace std::filesystem;
+    BlockSize = blockSize;
 
     if (!exists(inputFile)) {
         LOG(LogLevel::ERROR, "SilkCasket::Compress", "smartCompress", "文件不存在！");
@@ -156,8 +159,9 @@ V8asyncCompressData(const std::vector<uint8_t>& data, SilkCasket::Compress::Mode
 }
 
 // 智能压缩函数
-std::vector<uint8_t> SilkCasket::Compress::smartCompress(const std::vector<uint8_t>& data, const Mode::MODE& compress) {
+std::vector<uint8_t> SilkCasket::Compress::smartCompress(const std::vector<uint8_t>& data, const Mode::MODE& compress, size_t blockSize) {
     using namespace std::filesystem;
+    BlockSize = blockSize;
 
     if (data.empty()) {
         LOG(LogLevel::ERROR, "SilkCasket::Compress", "smartCompress", "输入数据为空！");

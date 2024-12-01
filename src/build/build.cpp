@@ -31,65 +31,45 @@
 #include <vector>
 #include <thread>
 
-
-void SilkCasket::Build::Builder::Build::build(const filesystem::path& Path,
-                                              const filesystem::path& OutPath,
+void SilkCasket::Build::Builder::Build::build(const std::filesystem::path &Path,
+                                              const std::filesystem::path &OutPath,
                                               SilkCasket::Compress::Mode::MODE Mode,
+                                              size_t blockSize,
                                               bool Encryption,
-                                              const string& key
-                                              ) {
+                                              const string &key)
+{
 
     auto temp = Path.parent_path() / "temp";
     filesystem::remove_all(temp);
 
-    SilkCasket::Utils::File::copyDirectory(Path, temp, 8096 * 1024);
+    SilkCasket::Utils::File::copyDirectory(Path, temp, blockSize);
 
     for (const auto& entry : filesystem::recursive_directory_iterator(temp)) {
         if (entry.is_regular_file()) {
-            auto compressedData = SilkCasket::Compress::smartCompress(entry.path(), Mode);
+            auto compressedData = SilkCasket::Compress::smartCompress(entry.path(), Mode, blockSize);
             if (!compressedData.empty()) {
                 Utils::File::Vuint8ToFile(entry.path(), compressedData);
             }
         }
     }
 
-    if (Encryption)
-    {
-        vector<future<void>> futures;
-        for (const auto &entry : filesystem::recursive_directory_iterator(temp))
-        {
-            if (entry.is_regular_file())
-            {
-                try
-                {
-                    LOG(LogLevel::INFO, "SilkCasket::Build::Builder", "Build", "build", "正在加密文件：" + entry.path().string());
-
-                    // 使用按值捕获entry和key
-                    futures.emplace_back(async(launch::async, [entry, key]
-                                               {
-                        auto encryptionData = SilkCasket::encryptFile(key, SilkCasket::Utils::File::readFile(entry.path().string()));
-                        if (!encryptionData.empty()) {
-                            SilkCasket::Utils::File::Vuint8ToFile(entry.path().string(), encryptionData);
-                        } }));
-                }
-                catch (const exception &e)
-                {
-                    LOG(LogLevel::ERROR, "SilkCasket::Build::Builder", "Build", "build", "加密文件失败: " + entry.path().string() + " - " + e.what());
-                }
+    if (Encryption) {
+        std::vector<std::future<void>> futures;
+        for (const auto &entry: filesystem::recursive_directory_iterator(temp)) {
+            if (entry.is_regular_file()) {
+                LOG(LogLevel::INFO, "SilkCasket::Build::Builder", "Build", "build", "正在加密文件：" + entry.path().string());
+                futures.emplace_back(std::async(std::launch::async, [&, entry, key] {
+                    auto encryptionData = SilkCasket::encryptFile(key, Utils::File::readFile(entry.path()));
+                    if (!encryptionData.empty()) {
+                        Utils::File::Vuint8ToFile(entry.path(), encryptionData);
+                    }
+                }));
             }
         }
 
         // 等待所有的异步操作完成
-        for (auto &future : futures)
-        {
-            try
-            {
-                future.get();
-            }
-            catch (const exception &e)
-            {
-                LOG(LogLevel::ERROR, "SilkCasket::Build::Builder", "Build", "build", "异步操作失败: " + (string)e.what());
-            }
+        for (auto &future : futures) {
+            future.get();
         }
     }
 
@@ -118,4 +98,3 @@ void SilkCasket::Build::Builder::Build::build(const filesystem::path& Path,
     LOG(LogLevel::INFO, "SilkCasket::Build::Builder", "Build", "build", "打包完成：" + OutPath.string());
     filesystem::remove_all(temp);
 }
-

@@ -31,7 +31,7 @@
 namespace SilkCasket::Compress {
     using namespace std;
 
-    vector<uint8_t> smartCompress(const std::filesystem::path& inputFile, const SilkCasket::Compress::Mode::MODE& compress = SilkCasket::Compress::Mode::MODE());
-    vector<uint8_t> smartCompress(const vector<uint8_t> &inputData, const SilkCasket::Compress::Mode::MODE& compress = SilkCasket::Compress::Mode::MODE());
+    vector<uint8_t> smartCompress(const std::filesystem::path& inputFile, const SilkCasket::Compress::Mode::MODE& compress = SilkCasket::Compress::Mode::MODE(), size_t blockSize = 8096 * 1024);
+    vector<uint8_t> smartCompress(const vector<uint8_t> &inputData, const SilkCasket::Compress::Mode::MODE& compress = SilkCasket::Compress::Mode::MODE(), size_t blockSize = 8096 * 1024);
     vector<uint8_t> smartDecompress(const vector<uint8_t> &compressedData);
 }

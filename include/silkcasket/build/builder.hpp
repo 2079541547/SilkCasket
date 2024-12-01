@@ -101,11 +101,12 @@ namespace SilkCasket::Build::Builder {
 
 
     public:
-        void build(const filesystem::path& Path,
-                   const filesystem::path& OutPath,
+        void build(const std::filesystem::path &Path,
+                   const std::filesystem::path &OutPath,
                    SilkCasket::Compress::Mode::MODE Mode,
+                   size_t blockSize = 8096 * 1024,
                    bool entryEncryption = false,
-                   const string& key = "");
+                   const string &key = "");
     };
 
 }

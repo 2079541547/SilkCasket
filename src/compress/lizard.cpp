@@ -25,50 +25,108 @@
 #include <compress/lizard.hpp>
 #include <lizard_compress.h>
 #include <lizard_decompress.h>
+#include <filesystem>
+#include <fstream>
+#include <cstring>
 
-std::vector<uint8_t> SilkCasket::Compress::Lizard::compress(const vector<uint8_t> &data) {
-
-    const size_t inputSize = data.size();
-    const size_t maxCompressedSize = Lizard_compressBound(inputSize); // 获取最大压缩后的大小
-    std::vector<uint8_t> compressed(maxCompressedSize); // 创建压缩后的存储空间
-    const size_t compressedSize = Lizard_compress(reinterpret_cast<const char*>(data.data()), // 输入数据
-                                                       reinterpret_cast<char*>(compressed.data()), // 输出缓冲区
-                                                       inputSize, // 输入大小
-                                                       maxCompressedSize,
-                                                       49
-                                                       ); // 最大压缩大小
-
-    // 如果压缩成功，调整压缩向量的大小
-    if (compressedSize > 0) {
-        compressed.resize(compressedSize);
-    } else {
-        // 压缩失败处理
-        throw std::runtime_error("Compression failed.");
+std::vector<uint8_t> SilkCasket::Compress::Lizard::compress(const vector<uint8_t> &data, size_t blockSize) {
+    auto tempFilePath = filesystem::temp_directory_path() / "temp_compressed_data.lizard";
+    std::ofstream tempFile(tempFilePath, std::ios::binary);
+    if (!tempFile.is_open()) {
+        throw std::runtime_error("Failed to open temporary file for compression.");
     }
-    return compressed;
+
+    // 写入块大小信息
+    tempFile.write(reinterpret_cast<const char*>(&blockSize), sizeof(blockSize));
+
+    for (size_t i = 0; i < data.size(); i += blockSize) {
+        const size_t chunkSize = std::min(blockSize, data.size() - i);
+        const size_t maxCompressedChunkSize = Lizard_compressBound(chunkSize);
+        uint8_t* compressedChunk = new uint8_t[maxCompressedChunkSize];
+
+        const size_t compressedChunkSize = Lizard_compress(
+                reinterpret_cast<const char*>(data.data() + i),
+                reinterpret_cast<char*>(compressedChunk),
+                chunkSize,
+                maxCompressedChunkSize,
+                49
+        );
+
+        if (compressedChunkSize > 0) {
+            tempFile.write(reinterpret_cast<const char*>(compressedChunk), compressedChunkSize);
+        } else {
+            delete[] compressedChunk;
+            throw std::runtime_error("Compression of a chunk failed.");
+        }
+
+        delete[] compressedChunk;
+    }
+    tempFile.close();
+
+    // 读取临时文件内容到内存
+    std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
+    if (!tempFileIn.is_open()) {
+        throw std::runtime_error("Failed to open temporary file for reading.");
+    }
+
+    std::streamsize size = tempFileIn.tellg();
+    std::vector<uint8_t> compressedData(size);
+    tempFileIn.seekg(0, std::ios::beg);
+    tempFileIn.read(reinterpret_cast<char*>(compressedData.data()), size);
+
+    // 删除临时文件
+    std::filesystem::remove(tempFilePath);
+
+    return compressedData;
 }
 
 
 std::vector <uint8_t> SilkCasket::Compress::Lizard::decompress(const vector<uint8_t> &compressed) {
-
-    const size_t inputSize = compressed.size();
-    // 假设解压缩后的数据大小不会超过原始数据大小
-    // 在实际应用中，可以根据实际情况调整这个值
-    std::vector<uint8_t> decompressed(compressed.size() * 5); // 创建解压缩后的存储空间
-
-    const size_t decompressedSize = Lizard_decompress_safe(reinterpret_cast<const char*>(compressed.data()), // 输入数据
-                                                        reinterpret_cast<char*>(decompressed.data()), // 输出缓冲区
-                                                        inputSize, // 输入大小
-                                                        decompressed.size()); // 解压缩后的最大大小
-
-    // 如果解压缩成功，调整解压缩向量的大小
-    if (decompressedSize > 0) {
-        decompressed.resize(decompressedSize);
-    } else {
-        // 解压缩失败处理
-        throw std::runtime_error("Decompression failed.");
+    auto tempFilePath = filesystem::temp_directory_path() / "temp_compressed_data.lizard";
+    std::ofstream tempFile(tempFilePath, std::ios::binary);
+    if (!tempFile.is_open()) {
+        throw std::runtime_error("Failed to open temporary file for decompression.");
     }
 
+    // 读取块大小信息
+    size_t blockSize;
+    std::memcpy(&blockSize, compressed.data(), sizeof(blockSize));
 
-    return decompressed;
+    for (size_t i = sizeof(blockSize); i < compressed.size(); i += blockSize) {
+        const size_t chunkSize = std::min(blockSize, compressed.size() - i);
+        auto* decompressedChunk = new uint8_t[chunkSize * 5]; // 假设解压后的数据不会超过原始数据大小的5倍
+
+        const size_t decompressedChunkSize = Lizard_decompress_safe(
+                reinterpret_cast<const char*>(compressed.data() + i),
+                reinterpret_cast<char*>(decompressedChunk),
+                chunkSize,
+                chunkSize * 5
+        );
+
+        if (decompressedChunkSize > 0) {
+            tempFile.write(reinterpret_cast<const char*>(decompressedChunk), decompressedChunkSize);
+        } else {
+            delete[] decompressedChunk;
+            throw std::runtime_error("Decompression of a chunk failed.");
+        }
+
+        delete[] decompressedChunk;
+    }
+    tempFile.close();
+
+    // 读取临时文件内容到内存
+    std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
+    if (!tempFileIn.is_open()) {
+        throw std::runtime_error("Failed to open temporary file for reading.");
+    }
+
+    std::streamsize size = tempFileIn.tellg();
+    std::vector<uint8_t> decompressedData(size);
+    tempFileIn.seekg(0, std::ios::beg);
+    tempFileIn.read(reinterpret_cast<char*>(decompressedData.data()), size);
+
+    // 删除临时文件
+    std::filesystem::remove(tempFilePath);
+
+    return decompressedData;
 }

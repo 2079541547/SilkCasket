@@ -24,7 +24,6 @@
 #pragma once
 
 #include <iostream>
-#include <cstring>
 
 namespace SilkCasket::FileStructure {
 

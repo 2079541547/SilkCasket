@@ -1,0 +1,2 @@
+/usr/bin/ar qc libLizard.a CMakeFiles/Lizard.dir/lib/Lizard/xxhash/xxhash.c.o CMakeFiles/Lizard.dir/lib/Lizard/entropy/entropy_common.c.o CMakeFiles/Lizard.dir/lib/Lizard/entropy/fse_compress.c.o CMakeFiles/Lizard.dir/lib/Lizard/entropy/fse_decompress.c.o CMakeFiles/Lizard.dir/lib/Lizard/entropy/huf_compress.c.o CMakeFiles/Lizard.dir/lib/Lizard/entropy/huf_decompress.c.o CMakeFiles/Lizard.dir/lib/Lizard/lizard_compress.c.o CMakeFiles/Lizard.dir/lib/Lizard/lizard_decompress.c.o CMakeFiles/Lizard.dir/lib/Lizard/lizard_frame.c.o
+/usr/bin/ranlib libLizard.a

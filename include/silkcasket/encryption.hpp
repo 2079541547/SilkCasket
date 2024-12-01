@@ -89,7 +89,7 @@ namespace SilkCasket {
             return byteArray;
         }
 
-        void quarterRound(uint32_t &a, uint32_t &b, uint32_t &c, uint32_t &d)
+        static void quarterRound(uint32_t &a, uint32_t &b, uint32_t &c, uint32_t &d)
         {
             a += b;
             d ^= a;
@@ -167,34 +167,40 @@ namespace SilkCasket {
             return ciphertext;
         }
 
-        uint32_t rotateLeft(uint32_t x, int n)
-        {
-            return (x << n) | (x >> (32 - n));
-        }
-
-        void poly1305_authenticate(uint8_t mac[16], const uint8_t *msg, size_t msgLen, const uint8_t *key)
-        {
+        static void poly1305_authenticate(uint8_t mac[16], const uint8_t *msg, size_t msgLen, const uint8_t *key) {
+            // Initialize the state
             uint32_t h[5] = {0, 0, 0, 0, 0};
             uint32_t r[5] = {0, 0, 0, 0, 1};
 
+            // Set the key values
             for (int i = 0; i < 4; ++i)
                 r[i] = le32toh(*(uint32_t *)(key + i * 4)) & (((i == 3) ? 0xffffffc0 : 0xffffffff) - 0x5);
 
+            // Pad the message to a multiple of 16 bytes
             size_t paddedSize = (msgLen + 15) & ~15;
-            uint8_t *pad = new uint8_t[paddedSize];
-            memset(pad, 0, paddedSize);
-            memcpy(pad, msg, msgLen);
-            pad[msgLen] |= 0x01;
+            std::vector<uint8_t> pad(paddedSize, 0);
+            memcpy(pad.data(), msg, msgLen);
+            if (msgLen > 0) {
+                pad[msgLen - 1] |= 0x01;  // Ensure the last byte is set to 0x01
+            }
 
-            for (size_t i = 0; i <= msgLen / 16; ++i)
-            {
-                uint32_t t[5] = {le32toh(*(uint32_t *)(pad + i * 16)), le32toh(*(uint32_t *)(pad + i * 16 + 4)), le32toh(*(uint32_t *)(pad + i * 16 + 8)), le32toh(*(uint32_t *)(pad + i * 16 + 12)), 1};
+            // Process the message in 16-byte blocks
+            for (size_t i = 0; i < paddedSize / 16; ++i) {
+                uint32_t t[5] = {0, 0, 0, 0, 1};  // Initialize t to 0
+
+                // Read 16 bytes from the padded message
+                for (int j = 0; j < 4; ++j) {
+                    if (i * 16 + j * 4 < msgLen) {
+                        t[j] = le32toh(*(uint32_t *)(pad.data() + i * 16 + j * 4));
+                    }
+                }
+
+                // Update the state
                 for (int j = 0; j < 5; ++j)
                     h[j] += t[j];
 
                 uint64_t u = 0;
-                for (int j = 0; j < 5; ++j)
-                {
+                for (int j = 0; j < 5; ++j) {
                     u += (uint64_t)h[j] * r[j];
                     h[j] = (uint32_t)u;
                     u >>= 32;
@@ -203,8 +209,7 @@ namespace SilkCasket {
             }
 
             uint64_t finalCarry = 0;
-            for (int j = 0; j < 5; ++j)
-            {
+            for (int j = 0; j < 5; ++j) {
                 finalCarry += h[j];
                 h[j] = (uint32_t)finalCarry;
                 finalCarry >>= 32;
@@ -212,28 +217,25 @@ namespace SilkCasket {
 
             uint32_t g[5] = {(~r[0] + 1) & 0xffffffc0, (~r[1]) & 0xffffffff, (~r[2]) & 0xffffffff, (~r[3]) & 0xffffffc0, 0};
             bool overflow = false;
-            for (int j = 0; j < 5; ++j)
-            {
+            for (int j = 0; j < 5; ++j) {
                 uint64_t s = (uint64_t)h[j] + g[j] + overflow;
                 h[j] = (uint32_t)s;
                 overflow = s >> 32;
             }
 
             if (overflow)
-                for (int j = 0; j < 5; ++j)
-                {
+                for (int j = 0; j < 5; ++j) {
                     uint64_t s = (uint64_t)h[j] + r[j];
                     h[j] = (uint32_t)s;
                     overflow = s >> 32;
                 }
 
+            // Store the result in the MAC
             for (int j = 0; j < 4; ++j)
                 *(uint32_t *)(mac + j * 4) = htole32(h[j]);
-
-            delete[] pad;
         }
 
-        bool verifyMac(const uint8_t *computedMac, const uint8_t *receivedMac)
+        static bool verifyMac(const uint8_t *computedMac, const uint8_t *receivedMac)
         {
             for (int i = 0; i < 16; ++i)
                 if (computedMac[i] != receivedMac[i])
@@ -392,4 +394,3 @@ namespace SilkCasket {
         }
     }
 }
-

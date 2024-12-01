@@ -37,6 +37,7 @@ void SilkCasket_compressDirectory(bool suffix,
                                   const std::filesystem::path &targetPath,
                                   std::filesystem::path outPath,
                                   SilkCasket::Compress::Mode::MODE mode,
+                                  size_t blockSize = 8096 * 1024,
                                   bool entryEncryption = false,
                                   const std::string &Key = ""
 ) {
@@ -46,6 +47,7 @@ void SilkCasket_compressDirectory(bool suffix,
             targetPath,
             outPath,
             mode,
+            blockSize,
             entryEncryption,
             Key
     );
@@ -56,6 +58,7 @@ void SilkCasket_compress_A_File(bool suffix,
                                 const std::filesystem::path &targetPath,
                                 std::filesystem::path outPath,
                                 SilkCasket::Compress::Mode::MODE mode,
+                                size_t blockSize = 8096 * 1024,
                                 bool entryEncryption = false,
                                 const std::string &Key = ""
 ) {
@@ -76,6 +79,7 @@ void SilkCasket_compress_A_File(bool suffix,
             tempDir,
             outPath,
             mode,
+            blockSize,
             entryEncryption,
             Key
     );
@@ -86,6 +90,7 @@ void SilkCasket_compress_Files(
         const std::map<std::filesystem::path, std::filesystem::path>& targetPaths,  // 修改为 map
         std::filesystem::path outPath,
         SilkCasket::Compress::Mode::MODE mode,
+        size_t blockSize = 8096 * 1024,
         bool entryEncryption = false,
         const std::string &Key = "") {
 
@@ -112,6 +117,7 @@ void SilkCasket_compress_Files(
                 tempDir,
                 outPath,
                 mode,
+                blockSize,
                 entryEncryption,
                 Key
         );
@@ -132,6 +138,7 @@ void SilkCasket_compress(
         const std::map<std::filesystem::path, std::filesystem::path>& targetPaths,
         std::filesystem::path outPath,
         SilkCasket::Compress::Mode::MODE mode,
+        size_t blockSize = 8096 * 1024,
         bool entryEncryption = false,
         const std::string &Key = ""
 ) {
@@ -163,6 +170,7 @@ void SilkCasket_compress(
                 tempDir,
                 outPath,
                 mode,
+                blockSize,
                 entryEncryption,
                 Key
         );

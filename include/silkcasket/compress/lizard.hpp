@@ -39,7 +39,7 @@ namespace SilkCasket::Compress::Lizard {
     * @param data 要压缩的数据。
     * @return 压缩后的数据。
     */
-    vector<uint8_t> compress(const vector<uint8_t> &data);
+    vector<uint8_t> compress(const vector<uint8_t> &data, size_t blockSize = 8096 * 1024);
 
     /**
      * 使用Lizard算法解压缩数据。

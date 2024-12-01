@@ -2,19 +2,16 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("silkcasket")
 
-set(ANDROID_ENABLE ON)
-set(LOG_SKC ON)
+set(ANDROID_ENABLE OFF)
+set(ENABLE_LOG ON)
+set(EXAMPLE ON)
 
-if(LOG_SKC)
-    add_definitions(-DENABLE_LOG=1)
-else()
-    add_definitions(-DENABLE_LOG=0)
+if(${ANDROID_ENABLE})
+    add_definitions(-DANDROID_ENABLE)
 endif()
 
-if(ANDROID)
-    add_definitions(-DENABLE_ANDROID=1)
-else()
-    add_definitions(-DENABLE_ANDROID=0)
+if(${ENABLE_LOG})
+    add_definitions(-DENABLE_LOG)
 endif()
 
 set(CMAKE_CXX_STANDARD 23)
@@ -110,7 +107,7 @@ target_include_directories(
         include
 )
 
-if(ANDROID_ENABLE)
+if(${ANDROID_ENABLE})
     target_link_libraries(
             silkcasket
             PUBLIC
@@ -119,7 +116,7 @@ if(ANDROID_ENABLE)
             LZMA2_Fast
             Lizard
     )
-else(!ANDROID_ENABLE)
+else()
     target_link_libraries(
             silkcasket
             PUBLIC
@@ -127,5 +124,20 @@ else(!ANDROID_ENABLE)
             LZMA2_Fast
             Lizard
     )
+endif()
+
+
+if(${EXAMPLE})
+
+add_executable(example-tool
+example/example-tool.cpp
+)
+
+target_link_libraries(
+            example-tool
+            PUBLIC
+            silkcasket
+)
+
 endif()
 
