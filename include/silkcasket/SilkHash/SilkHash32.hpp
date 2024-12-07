@@ -5,20 +5,20 @@
  * 作者: EternalFuture゙
  * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture゙. All rights reserved.
- * 许可证: This program is free software: you can redistribute it and/or modify
- *         it under the terms of the GNU Affero General Public License as published
- *         by the Free Software Foundation, either version 3 of the License, or
- *         (at your option) any later version.
+ * 许可证: Licensed under the Apache License, Version 2.0 (the "License");
+ *         you may not use this file except in compliance with the License.
+ *         You may obtain a copy of the License at
  *
- *         This program is distributed in the hope that it will be useful,
- *         but WITHOUT ANY WARRANTY; without even the implied warranty of
- *         MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *         GNU Affero General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- *         You should have received a copy of the GNU Affero General Public License
- *         along with this program. If not, see <https://www.gnu.org/licenses/>.
- * 描述信息: 本文件为Silk Casket项目中的一部分。
- * 注意事项: 请严格遵守GNU AGPL v3.0协议使用本代码，任何未经授权的商业用途均属侵权行为。
+ *         Unless required by applicable law or agreed to in writing, software
+ *         distributed under the License is distributed on an "AS IS" BASIS,
+ *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *         See the License for the specific language governing permissions and
+ *         limitations under the License.
+ *
+ * 描述信息: 本文件为SilkCasket项目中的一部分，允许在遵守Apache License 2.0的条件下自由用于商业用途。
+ * 注意事项: 请严格遵守Apache License 2.0协议使用本代码。Apache License 2.0允许商业用途，无需额外授权。
  *******************************************************************************/
 
 #pragma once

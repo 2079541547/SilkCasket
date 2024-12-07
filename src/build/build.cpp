@@ -3,7 +3,7 @@
  * 项目名称: SilkCasket
  * 创建时间: 2024/11/24
  * 作者: EternalFuture゙
- * Github: https://github.com/2079541547 
+ * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture. All rights reserved.
  * 许可证: Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
@@ -30,59 +30,61 @@
 #include <future>
 #include <vector>
 #include <thread>
+#include <filesystem>
 
 void SilkCasket::Build::Builder::Build::build(const std::filesystem::path &Path,
-                                              const std::filesystem::path &OutPath,
-                                              SilkCasket::Compress::Mode::MODE Mode,
-                                              size_t blockSize,
-                                              bool Encryption,
-                                              const string &key)
+                                                 const std::filesystem::path &OutPath,
+                                                 SilkCasket::Compress::Mode::MODE Mode,
+                                                 size_t blockSize,
+                                                 bool Encryption,
+                                                 const string &key)
 {
+    auto cacheDir = Path.parent_path() / "cache";
+    filesystem::create_directories(cacheDir); // 创建缓存目录
 
-    auto temp = Path.parent_path() / "temp";
-    filesystem::remove_all(temp);
+    // 遍历源目录中的文件并处理
+    for (const auto &entry : filesystem::recursive_directory_iterator(Path))
+    {
+        if (entry.is_regular_file())
+        {
+            auto relativePath = std::filesystem::relative(entry.path(), Path);
+            auto cacheFilePath = cacheDir / relativePath;
 
-    SilkCasket::Utils::File::copyDirectory(Path, temp, blockSize);
+            // 确保缓存文件路径的目录存在
+            filesystem::create_directories(cacheFilePath.parent_path());
 
-    for (const auto& entry : filesystem::recursive_directory_iterator(temp)) {
-        if (entry.is_regular_file()) {
+            // 压缩文件并保存到缓存目录
             auto compressedData = SilkCasket::Compress::smartCompress(entry.path(), Mode, blockSize);
-            if (!compressedData.empty()) {
-                Utils::File::Vuint8ToFile(entry.path(), compressedData);
-            }
-        }
-    }
+            if (!compressedData.empty())
+            {
+                Utils::File::Vuint8ToFile(cacheFilePath, compressedData);
 
-    if (Encryption) {
-        std::vector<std::future<void>> futures;
-        for (const auto &entry: filesystem::recursive_directory_iterator(temp)) {
-            if (entry.is_regular_file()) {
-                LOG(LogLevel::INFO, "SilkCasket::Build::Builder", "Build", "build", "正在加密文件：" + entry.path().string());
-                futures.emplace_back(std::async(std::launch::async, [&, entry, key] {
-                    auto encryptionData = SilkCasket::encryptFile(key, Utils::File::readFile(entry.path()));
-                    if (!encryptionData.empty()) {
-                        Utils::File::Vuint8ToFile(entry.path(), encryptionData);
+                // 如果需要加密，立即加密压缩后的文件
+                if (Encryption)
+                {
+                    auto encryptionData = SilkCasket::encryptFile(key, compressedData);
+                    if (!encryptionData.empty())
+                    {
+                        Utils::File::Vuint8ToFile(cacheFilePath, encryptionData);
                     }
-                }));
+                }
             }
-        }
-
-        // 等待所有的异步操作完成
-        for (auto &future : futures) {
-            future.get();
         }
     }
 
-    configureEntries(temp, Encryption);
+    // 配置条目，创建索引等操作
+    configureEntries(cacheDir, Encryption);
 
+    // 序列化文件条目和数据条目
     auto FileEntry = SilkCasket::Compress::smartCompress(SilkCasket::FileStructure::serializeEntrys(Entry), Mode);
     auto FileEntryData = SilkCasket::Compress::smartCompress(SilkCasket::FileStructure::serializeEntryData(EntryData), Mode);
 
+    // 构建头部信息
     Header = {
-            "SilkCasket",
-            20241130,
-            {(long)tempData.size() + 46, (long)FileEntry.size()},
-            {(long)tempData.size() + (long)FileEntry.size() + 46, (long)FileEntryData.size()},
+        "SilkCasket",
+        20241130,
+        {(long)tempData.size() + 46, (long)FileEntry.size()},
+        {(long)tempData.size() + (long)FileEntry.size() + 46, (long)FileEntryData.size()},
     };
 
     auto FileHeader = SilkCasket::FileStructure::serializeHeader(Header);
@@ -93,8 +95,10 @@ void SilkCasket::Build::Builder::Build::build(const std::filesystem::path &Path,
     Data.data.insert(Data.data.end(), FileEntry.begin(), FileEntry.end());
     Data.data.insert(Data.data.end(), FileEntryData.begin(), FileEntryData.end());
 
-
+    // 将最终打包的数据写入输出文件
     SilkCasket::Utils::File::Vuint8ToFile(OutPath, Data.data);
     LOG(LogLevel::INFO, "SilkCasket::Build::Builder", "Build", "build", "打包完成：" + OutPath.string());
-    filesystem::remove_all(temp);
+
+    // 清理缓存目录
+    filesystem::remove_all(cacheDir);
 }
