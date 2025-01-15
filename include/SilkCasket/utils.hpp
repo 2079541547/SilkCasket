@@ -1,9 +1,9 @@
 /*******************************************************************************
- * 文件名称: lizard
+ * 文件名称: utils
  * 项目名称: SilkCasket
- * 创建时间: 2024/11/29
+ * 创建时间: 2025/1/15
  * 作者: EternalFuture゙
- * Github: https://github.com/2079541547 
+ * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture. All rights reserved.
  * 许可证: Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
@@ -17,35 +17,20 @@
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  *
- * 描述信息: 本文件为SilkCasket项目中的一部分，允许在遵守Apache License 2.0的条件下自由用于商业用途。
+ * 描述信息: 本文件为Silk Casket项目中的一部分，允许在遵守Apache License 2.0的条件下自由用于商业用途。
  * 注意事项: 请严格遵守Apache License 2.0协议使用本代码。Apache License 2.0允许商业用途，无需额外授权。
  *******************************************************************************/
 
 #pragma once
 
-#include <iostream>
 #include <vector>
-#include <map>
-#include <queue>
-#include <stdexcept>
-#include <unordered_map>
+#include <filesystem>
 
-namespace SilkCasket::Compress::Lizard {
-    using namespace std;
-
-    /**
-    * 使用Lizard算法压缩数据。
-    *
-    * @param data 要压缩的数据。
-    * @return 压缩后的数据。
-    */
-    vector<uint8_t> compress(const vector<uint8_t> &data, size_t blockSize = 8096 * 1024);
-
-    /**
-     * 使用Lizard算法解压缩数据。
-     *
-     * @param compressed 压缩后的数据。
-     * @return 解压缩后的数据。
-     */
-    vector<uint8_t> decompress(const vector<uint8_t> &compressed);
+namespace SilkCasket::Utils {
+    void Vuint8ToFile(const std::filesystem::path& Path, const std::vector<uint8_t> &Content, size_t chunkSize = 1024 * 1024);
+    void stringToFile(const std::filesystem::path& Path, const std::string& Content);
+    void copyFileTo(const std::filesystem::path& Source, const std::filesystem::path& Target, size_t chunkSize = 1024 * 1024);
+    void copyDirectory(const std::filesystem::path& Source, const std::filesystem::path& Target, size_t chunkSize = 1024 * 1024);
+    std::vector<uint8_t> readFile(const std::filesystem::path& Path);
+    std::vector<uint8_t> readFileAddress(const std::filesystem::path& Path, const size_t& offset, const size_t& size);
 }

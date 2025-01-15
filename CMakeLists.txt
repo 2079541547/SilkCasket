@@ -1,22 +1,8 @@
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.30)
+project(SilkCasket)
 
-project("silkcasket")
-
-set(ANDROID_ENABLE OFF)
-set(ENABLE_LOG ON)
+set(CMAKE_CXX_STANDARD 17)
 set(EXAMPLE ON)
-
-if(${ANDROID_ENABLE})
-    add_definitions(-DANDROID_ENABLE)
-endif()
-
-if(${ENABLE_LOG})
-    add_definitions(-DENABLE_LOG)
-endif()
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto")
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LZ4 compression library")
 set(LZ4_PATH lib/LZ4/)
@@ -74,70 +60,37 @@ target_compile_options(Lizard PRIVATE
         -pthread
 )
 
-
-set(INCLUDE_DIRS
-        include/silkcasket
-)
-
-add_library(
-        silkcasket
+add_library(SilkCasket
         STATIC
-        src/compress/lzw.cpp
-        src/compress/lz4.cpp
-        src/compress/lizard.cpp
-        src/compress/lzma2-fast.cpp
-        src/compress/compress.cpp
-        src/utils/file.cpp
-        src/structure/entry.cpp
-        src/structure/header.cpp
-        src/build/build.cpp
+        src/structure.cpp
+        src/compress.cpp
+        src/utils.cpp
+        src/build.cpp
+        src/encryption.cpp
         src/analysis.cpp
+        src/SilkCasket.cpp
 )
 
-target_include_directories(
-        silkcasket
-        PRIVATE
-        include/silkcasket
-        lib
-)
+target_include_directories(SilkCasket
+    PRIVATE
+        include/SilkCasket
 
-target_include_directories(
-        silkcasket
-        PUBLIC
+    PUBLIC
         include
 )
 
-if(${ANDROID_ENABLE})
-    target_link_libraries(
-            silkcasket
-            PUBLIC
-            liblz4
-            log
-            LZMA2_Fast
-            Lizard
-    )
-else()
-    target_link_libraries(
-            silkcasket
-            PUBLIC
-            liblz4
-            LZMA2_Fast
-            Lizard
-    )
-endif()
-
-
-if(${EXAMPLE})
-
-add_executable(example-tool
-example/example-tool.cpp
+target_link_libraries(SilkCasket
+    PRIVATE
+        liblz4
+        LZMA2_Fast
+        Lizard
 )
 
-target_link_libraries(
-            example-tool
-            PUBLIC
-            silkcasket
-)
-
-endif()
-
+if (${EXAMPLE})
+    add_executable(example-tool
+            example/example-tool.cpp
+    )
+    target_link_libraries(example-tool
+            SilkCasket
+    )
+endif ()

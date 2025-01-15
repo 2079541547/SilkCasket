@@ -1,9 +1,9 @@
 /*******************************************************************************
- * 文件名称: header
- * 项目名称: Silk Casket
- * 创建时间: 2024/11/22
+ * 文件名称: structure
+ * 项目名称: SilkCasket
+ * 创建时间: 2025/1/4
  * 作者: EternalFuture゙
- * Github: https://github.com/2079541547 
+ * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture. All rights reserved.
  * 许可证: Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
@@ -23,27 +23,49 @@
 
 #pragma once
 
-#include "address.hpp"
-#include <stdexcept>
-#include <iostream>
-#include <fstream>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <cstring>
-#include <array>
 
-namespace SilkCasket::FileStructure {
+namespace SilkCasket::FileStructure  {
 
-    using namespace std;
-
-    struct header {
-        string identification = "SilkCasket";
-        int versionNumber = 20241122;
-        address entry;
-        address entryData;
+    struct address {
+        size_t offset;
+        size_t size;
     };
 
-    vector<uint8_t> serializeHeader(const header &hdr);
-    header deserializeHeader(const std::vector<uint8_t> &buffer);
+    struct header {
+        const char *id = "SilkCasket";
+        int versionNumber = 20241122;
+        address entry{};
+        address entryData{};
+        bool encryption{};
+
+        static std::vector<uint8_t> serialize(const header &hdr);
+        static header deserialize(const std::vector<uint8_t> &buffer);
+    };
+
+    struct entry {
+        std::string name;
+        bool isFile;
+        int data;
+
+        static std::vector<uint8_t> serialize(const entry& entry);
+        static entry deserialize(const std::vector<uint8_t>& buffer, size_t &offset);
+    };
+
+    struct data {
+        std::vector<address> Address;
+
+        static std::vector<uint8_t> serialize(const data& data);
+        static data deserialize(const std::vector<uint8_t>& buffer);
+    };
+
+    std::vector<uint8_t> serializeString(const std::string &str);
+    std::string deserializeString(const std::vector<uint8_t> &buffer, size_t &offset);
+
+
+    std::vector<uint8_t> serialize_entries(const std::vector<entry>& entries);
+    std::vector<entry> deserialize_entries(const std::vector<uint8_t>& buffer);
 }

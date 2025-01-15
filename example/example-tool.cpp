@@ -1,4 +1,5 @@
-#include "../SilkCasket.hpp"
+#include <SilkCasket/SilkCasket.hpp>
+#include <iostream>
 
 using namespace std;
 using namespace SilkCasket;
