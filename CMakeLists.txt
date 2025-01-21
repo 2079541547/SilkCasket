@@ -3,6 +3,7 @@ project(SilkCasket)
 
 set(CMAKE_CXX_STANDARD 17)
 set(EXAMPLE ON)
+set(TEST ON)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LZ4 compression library")
 set(LZ4_PATH lib/LZ4/)
@@ -41,24 +42,13 @@ INCLUDE_DIRECTORIES (${LZ4_PATH})
 file(GLOB LZMA2FAST_SRC "lib/LZMA2-Fast/*.c")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/LZMA2-Fast/)
 add_library(LZMA2_Fast STATIC ${LZMA2FAST_SRC})
-target_compile_options(LZMA2_Fast PRIVATE
-        -Wall
-        -O3
-        -fPIC
-        -pthread
-)
 
 file(GLOB LIZARD_SRC1 "lib/Lizard/xxhash/*.c")
 file(GLOB LIZARD_SRC2 "lib/Lizard/entropy/*.c")
 file(GLOB LIZARD_SRC3 "lib/Lizard/*.c")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/Lizard)
 add_library(Lizard STATIC ${LIZARD_SRC1} ${LIZARD_SRC2} ${LIZARD_SRC3})
-target_compile_options(Lizard PRIVATE
-        -Wall
-        -O3
-        -fPIC
-        -pthread
-)
+
 
 add_library(SilkCasket
         STATIC
@@ -68,6 +58,7 @@ add_library(SilkCasket
         src/build.cpp
         src/encryption.cpp
         src/analysis.cpp
+        src/analysis_men.cpp
         src/SilkCasket.cpp
 )
 
@@ -91,6 +82,15 @@ if (${EXAMPLE})
             example/example-tool.cpp
     )
     target_link_libraries(example-tool
+            SilkCasket
+    )
+endif ()
+
+if (${TEST})
+    add_executable(test
+            example/test.cpp
+    )
+    target_link_libraries(test
             SilkCasket
     )
 endif ()

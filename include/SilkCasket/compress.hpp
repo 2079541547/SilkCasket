@@ -52,10 +52,10 @@ namespace SilkCasket {
             static std::vector<uint8_t> smartCompress(const std::filesystem::path &inputFile, const MODE &compress = MODE(),
                                            size_t blockSize = 8096 * 1024);
 
-            std::vector<uint8_t> smartCompress(const std::vector<uint8_t> &inputData, const MODE &compress = MODE(),
+            static std::vector<uint8_t> smartCompress(const std::vector<uint8_t> &inputData, const MODE &compress = MODE(),
                                            size_t blockSize = 8096 * 1024);
 
-            std::vector<uint8_t> smartDecompress(const std::vector<uint8_t> &compressedData, size_t blockSize = 8096 * 1024);
+            static std::vector<uint8_t> smartDecompress(const std::vector<uint8_t> &compressedData);
     };
 
     struct LZ4 {

@@ -86,7 +86,7 @@ std::future<std::pair<SilkCasket::Mode, std::filesystem::path>>
 asyncCompressData(const std::vector<uint8_t>& data, SilkCasket::Mode mode, size_t blockSize = 8096 * 1024) {
     return std::async(std::launch::async, [&data, mode, &blockSize](){
         auto compressedData = compressData(data, mode, blockSize);
-        auto tempFile = std::filesystem::temp_directory_path() / ("compressed_" + std::to_string(static_cast<int>(mode)) + ".tmp");
+        auto tempFile = SilkCasket::temp_path / ("compressed_" + std::to_string(static_cast<int>(mode)) + ".tmp");
         SilkCasket::Utils::Vuint8ToFile(tempFile, compressedData);
         return std::make_pair(mode, tempFile);
     });
@@ -104,11 +104,11 @@ SilkCasket::Compress::smartCompress(const std::filesystem::path &inputFile, cons
 
     std::vector<std::future<std::pair<SilkCasket::Mode, std::filesystem::path>>> futures;
 
-    if (compress.Storage) futures.push_back(asyncCompressData(data, SilkCasket::Mode::Storage));
-    if (compress.LZMA2FAST) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZMA2FAST));
-    if (compress.LZ4) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZ4));
-    if (compress.LZW) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZW));
-    if (compress.LIZARD) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LIZARD));
+    if (compress.Storage) futures.push_back(asyncCompressData(data, SilkCasket::Mode::Storage, blockSize));
+    if (compress.LZMA2FAST) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZMA2FAST, blockSize));
+    if (compress.LZ4) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZ4, blockSize));
+    if (compress.LZW) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LZW, blockSize));
+    if (compress.LIZARD) futures.push_back(asyncCompressData(data, SilkCasket::Mode::LIZARD, blockSize));
 
     if (futures.empty()) {
         return {};
@@ -133,9 +133,9 @@ SilkCasket::Compress::smartCompress(const std::filesystem::path &inputFile, cons
 }
 
 std::future<std::pair<SilkCasket::Mode, std::vector<uint8_t>>>
-V8asyncCompressData(const std::vector<uint8_t>& data, SilkCasket::Mode mode) {
-    return std::async(std::launch::async, [&data, mode](){
-        auto compressedData = compressData(data, mode);
+V8asyncCompressData(const std::vector<uint8_t>& data, SilkCasket::Mode mode, size_t blockSize) {
+    return std::async(std::launch::async, [&data, mode, blockSize](){
+        auto compressedData = compressData(data, mode, blockSize);
         return std::make_pair(mode, compressedData);
     });
 }
@@ -150,17 +150,16 @@ SilkCasket::Compress::smartCompress(const std::vector<uint8_t> &inputData, const
 
     std::vector<std::future<std::pair<SilkCasket::Mode, std::vector<uint8_t>>>> futures;
 
-    if (compress.Storage) futures.push_back(V8asyncCompressData(inputData, Mode::Storage));
-    if (compress.LZMA2FAST) futures.push_back(V8asyncCompressData(inputData, Mode::LZMA2FAST));
-    if (compress.LZ4) futures.push_back(V8asyncCompressData(inputData, Mode::LZ4));
-    if (compress.LZW) futures.push_back(V8asyncCompressData(inputData, Mode::LZW));
-    if (compress.LIZARD) futures.push_back(V8asyncCompressData(inputData, Mode::LIZARD));
+    if (compress.Storage) futures.push_back(V8asyncCompressData(inputData, Mode::Storage, blockSize));
+    if (compress.LZMA2FAST) futures.push_back(V8asyncCompressData(inputData, Mode::LZMA2FAST, blockSize));
+    if (compress.LZ4) futures.push_back(V8asyncCompressData(inputData, Mode::LZ4, blockSize));
+    if (compress.LZW) futures.push_back(V8asyncCompressData(inputData, Mode::LZW, blockSize));
+    if (compress.LIZARD) futures.push_back(V8asyncCompressData(inputData, Mode::LIZARD, blockSize));
 
     if (futures.empty()) {
         return {};
     }
 
-    // 等待所有异步操作完成，并找到最小的压缩结果
     std::vector<std::pair<SilkCasket::Mode, std::vector<uint8_t>>> results;
     results.reserve(futures.size());
     for (auto& future : futures) {
@@ -174,10 +173,10 @@ SilkCasket::Compress::smartCompress(const std::vector<uint8_t> &inputData, const
 }
 
 std::vector<uint8_t>
-SilkCasket::Compress::smartDecompress(const std::vector<uint8_t> &compressedData, size_t blockSize) {
+SilkCasket::Compress::smartDecompress(const std::vector<uint8_t> &compressedData) {
 
     if (compressedData.size() < sizeof(int)) {
-        return {};
+        throw std::runtime_error("compressedData is null!");
     }
 
     int modeValue;
@@ -255,7 +254,6 @@ std::vector<uint8_t> SilkCasket::LZW::compress(const std::vector<uint8_t> &data)
     for (auto byte : data) {
         std::string candidate = prefix + static_cast<char>(byte);
 
-        // 检查候选字符串是否在字典中
         if (dictionary.find(candidate) != dictionary.end()) {
             prefix = candidate;
         } else {
@@ -321,8 +319,7 @@ std::vector<uint8_t> SilkCasket::LZ4::compress(const std::vector<uint8_t> &data,
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lz4";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for compression." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for compression.");
     }
 
     tempFile.write(reinterpret_cast<const char*>(&blockSize), sizeof(blockSize));
@@ -340,11 +337,10 @@ std::vector<uint8_t> SilkCasket::LZ4::compress(const std::vector<uint8_t> &data,
         );
 
         if (compressedChunkSize > 0) {
-            tempFile.write(reinterpret_cast<const char*>(compressedChunk), compressedChunkSize);
+            tempFile.write(reinterpret_cast<const char*>(compressedChunk), (long)compressedChunkSize);
         } else {
             delete[] compressedChunk;
-            std::cerr << "Compression of a chunk failed." << std::endl;
-            return {};
+            throw std::runtime_error("Compression of a chunk failed.");
         }
 
         delete[] compressedChunk;
@@ -353,8 +349,7 @@ std::vector<uint8_t> SilkCasket::LZ4::compress(const std::vector<uint8_t> &data,
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();
@@ -363,6 +358,7 @@ std::vector<uint8_t> SilkCasket::LZ4::compress(const std::vector<uint8_t> &data,
     tempFileIn.read(reinterpret_cast<char*>(compressedData.data()), size);
 
     std::filesystem::remove(tempFilePath);
+
     return compressedData;
 }
 
@@ -370,8 +366,7 @@ std::vector<uint8_t> SilkCasket::LZ4::decompress(const std::vector<uint8_t> &com
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lz4";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for decompression." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for decompression.");
     }
 
     size_t blockSize;
@@ -389,10 +384,10 @@ std::vector<uint8_t> SilkCasket::LZ4::decompress(const std::vector<uint8_t> &com
         );
 
         if (decompressedChunkSize > 0) {
-            tempFile.write(reinterpret_cast<const char*>(decompressedChunk), decompressedChunkSize);
+            tempFile.write(reinterpret_cast<const char*>(decompressedChunk), (long)decompressedChunkSize);
         } else {
             delete[] decompressedChunk;
-            std::cerr << "Decompression of a chunk failed." << std::endl;
+            throw std::runtime_error("Decompression of a chunk failed.");
         }
 
         delete[] decompressedChunk;
@@ -401,8 +396,7 @@ std::vector<uint8_t> SilkCasket::LZ4::decompress(const std::vector<uint8_t> &com
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();
@@ -419,8 +413,7 @@ std::vector<uint8_t> SilkCasket::Lizard::compress(const std::vector<uint8_t> &da
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lizard";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for compression." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for compression.");
     }
 
     tempFile.write(reinterpret_cast<const char*>(&blockSize), sizeof(blockSize));
@@ -428,7 +421,7 @@ std::vector<uint8_t> SilkCasket::Lizard::compress(const std::vector<uint8_t> &da
     for (size_t i = 0; i < data.size(); i += blockSize) {
         const size_t chunkSize = std::min(blockSize, data.size() - i);
         const size_t maxCompressedChunkSize = Lizard_compressBound(chunkSize);
-        uint8_t* compressedChunk = new uint8_t[maxCompressedChunkSize];
+        auto* compressedChunk = new uint8_t[maxCompressedChunkSize];
 
         const size_t compressedChunkSize = Lizard_compress(
                 reinterpret_cast<const char*>(data.data() + i),
@@ -439,11 +432,10 @@ std::vector<uint8_t> SilkCasket::Lizard::compress(const std::vector<uint8_t> &da
         );
 
         if (compressedChunkSize > 0) {
-            tempFile.write(reinterpret_cast<const char*>(compressedChunk), compressedChunkSize);
+            tempFile.write(reinterpret_cast<const char*>(compressedChunk), (long)compressedChunkSize);
         } else {
             delete[] compressedChunk;
-            std::cerr << "Compression of a chunk failed." << std::endl;
-            return {};
+            throw std::runtime_error("Compression of a chunk failed.");
         }
 
         delete[] compressedChunk;
@@ -452,8 +444,7 @@ std::vector<uint8_t> SilkCasket::Lizard::compress(const std::vector<uint8_t> &da
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();
@@ -470,8 +461,7 @@ std::vector<uint8_t> SilkCasket::Lizard::decompress(const std::vector<uint8_t> &
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lizard";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for decompression." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for decompression.");
     }
 
     size_t blockSize;
@@ -479,21 +469,20 @@ std::vector<uint8_t> SilkCasket::Lizard::decompress(const std::vector<uint8_t> &
 
     for (size_t i = sizeof(blockSize); i < compressed.size(); i += blockSize) {
         const size_t chunkSize = std::min(blockSize, compressed.size() - i);
-        auto* decompressedChunk = new uint8_t[chunkSize * 5];
+        auto* decompressedChunk = new uint8_t[chunkSize * 2];
 
         const size_t decompressedChunkSize = Lizard_decompress_safe(
                 reinterpret_cast<const char*>(compressed.data() + i),
                 reinterpret_cast<char*>(decompressedChunk),
                 chunkSize,
-                chunkSize * 5
+                chunkSize * 2
         );
 
         if (decompressedChunkSize > 0) {
-            tempFile.write(reinterpret_cast<const char*>(decompressedChunk), decompressedChunkSize);
+            tempFile.write(reinterpret_cast<const char*>(decompressedChunk), (long)decompressedChunkSize);
         } else {
             delete[] decompressedChunk;
-            std::cerr << "Decompression of a chunk failed." << std::endl;
-            return {};
+            throw std::runtime_error("Decompression of a chunk failed.");
         }
 
         delete[] decompressedChunk;
@@ -502,8 +491,7 @@ std::vector<uint8_t> SilkCasket::Lizard::decompress(const std::vector<uint8_t> &
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();
@@ -520,8 +508,7 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::compress(const std::vector<uint8_t> 
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lzma2-fast";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for compression." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for compression.");
     }
 
     const size_t inputSize = data.size();
@@ -543,18 +530,16 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::compress(const std::vector<uint8_t> 
 
         if (compressedChunkSize > 0) {
             compressedChunk.resize(compressedChunkSize + sizeof(size_t));
-            tempFile.write(reinterpret_cast<const char*>(compressedChunk.data()), compressedChunk.size());
+            tempFile.write(reinterpret_cast<const char*>(compressedChunk.data()), (long)compressedChunk.size());
         } else {
-            std::cerr << "Compression of a chunk failed." << std::endl;
-            return {};
+            throw std::runtime_error("Compression of a chunk failed.");
         }
     }
     tempFile.close();
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();
@@ -571,7 +556,7 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::decompress(const std::vector<uint8_t
     auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lzma2-fast";
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
-        std::cerr << "Failed to open temporary file for decompression." << std::endl;
+        throw std::runtime_error("Failed to open temporary file for decompression.");
     }
 
     size_t offset = 0;
@@ -592,19 +577,17 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::decompress(const std::vector<uint8_t
         );
 
         if (decompressedChunkSize > 0 && decompressedChunkSize == chunkSize) {
-            tempFile.write(reinterpret_cast<const char*>(decompressedChunk.data()), decompressedChunk.size());
+            tempFile.write(reinterpret_cast<const char*>(decompressedChunk.data()), (long)decompressedChunk.size());
             offset += compressedChunkSize;
         } else {
-            std::cerr << "Decompression of a chunk failed or unexpected size." << std::endl;
-            return {};
+            throw std::runtime_error("Decompression of a chunk failed or unexpected size.");
         }
     }
     tempFile.close();
 
     std::ifstream tempFileIn(tempFilePath, std::ios::binary | std::ios::ate);
     if (!tempFileIn.is_open()) {
-        std::cerr << "Failed to open temporary file for reading." << std::endl;
-        return {};
+        throw std::runtime_error("Failed to open temporary file for reading.");
     }
 
     std::streamsize size = tempFileIn.tellg();

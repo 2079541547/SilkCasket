@@ -1,7 +1,7 @@
 /*******************************************************************************
- * 文件名称: encryption
+ * 文件名称: test
  * 项目名称: SilkCasket
- * 创建时间: 2025/1/4
+ * 创建时间: 2025/01/22
  * 作者: EternalFuture゙
  * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture. All rights reserved.
@@ -21,19 +21,25 @@
  * 注意事项: 请严格遵守Apache License 2.0协议使用本代码。Apache License 2.0允许商业用途，无需额外授权。
  *******************************************************************************/
 
-#pragma once
+#include <SilkCasket/build.hpp>
+#include <SilkCasket/analysis_men.hpp>
+#include <SilkCasket/utils.hpp>
 
-#include <string>
-#include <vector>
-#include <cstdint>
+int main() {
 
-namespace SilkCasket {
-    class RC4 {
-    public:
-        static std::vector<unsigned char> rc4_encrypt(const std::vector<unsigned char>& data, const std::string& keyStr);
-        static std::vector<unsigned char> rc4_decrypt(const std::vector<unsigned char>& data, const std::string& keyStr);
-    private:
-        static void rc4_ksa(const unsigned char *key, size_t key_len, std::vector<unsigned char> &S);
-        static unsigned char rc4_prga(std::vector<unsigned char> &S, size_t &i, size_t &j);
-    };
-}
+    SilkCasket::builder B;
+    B.build("/home/yuwu/下载/AES-main",
+            "a.skc",
+            {true, true, true, true, true},
+            8096 * 1024,
+            true,
+            "Hello");
+
+    SilkCasket::analysis_men A(SilkCasket::Utils::readFile("a.skc"), "Hello");
+    A.printALL();
+    A.releaseEntry("/home/yuwu/下载/新建文件夹");
+
+
+
+    return 0;
+};

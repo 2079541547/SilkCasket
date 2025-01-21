@@ -22,9 +22,11 @@
  *******************************************************************************/
 
 #include <analysis.hpp>
+#include <utility>
 #include <utils.hpp>
 #include <iostream>
 #include <encryption.hpp>
+#include <sstream>
 
 SilkCasket::analysis::analysis(const std::filesystem::path &File, std::string KEY) {
     key = std::move(KEY);
@@ -40,9 +42,9 @@ SilkCasket::analysis::analysis(const std::filesystem::path &File, std::string KE
     if (temp.empty()) {
         return;
     }
-    entry = FileStructure::deserialize_entries(Compress.smartDecompress(temp));
+    entry = FileStructure::deserialize_entries(SilkCasket::Compress::smartDecompress(temp));
     temp = Utils::readFileAddress(File, header.entryData.offset, header.entryData.size);
-    data = FileStructure::data::deserialize(Compress.smartDecompress(temp));
+    data = FileStructure::data::deserialize(SilkCasket::Compress::smartDecompress(temp));
 }
 
 void SilkCasket::analysis::printALL() {
@@ -104,9 +106,9 @@ std::vector <uint8_t> SilkCasket::analysis::getData(const std::string& Name) {
     auto _b = getAddress(_a);
     auto org_data = Utils::readFileAddress(file_path, _b.offset, _b.size);
     if (getEncryption()) {
-        return Compress.smartDecompress(SilkCasket::decryptFile(key, org_data));
+        return SilkCasket::Compress::smartDecompress(SilkCasket::RC4::rc4_decrypt(org_data, key));
     }
-    return Compress.smartDecompress(org_data);
+    return SilkCasket::Compress::smartDecompress(org_data);
 }
 
 void SilkCasket::analysis::releaseFile(const std::string& Name, const std::filesystem::path& targetPath) {
