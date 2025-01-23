@@ -1,7 +1,7 @@
 /*******************************************************************************
- * 文件名称: encryption
+ * 文件名称: analysis_men
  * 项目名称: SilkCasket
- * 创建时间: 2025/1/4
+ * 创建时间: 2025/01/22
  * 作者: EternalFuture゙
  * Github: https://github.com/2079541547
  * 版权声明: Copyright © 2024 EternalFuture. All rights reserved.
@@ -23,17 +23,31 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <cstdint>
+#include "structure.hpp"
+#include <filesystem>
+#include "compress.hpp"
 
 namespace SilkCasket {
-    class RC4 {
-    public:
-        static std::vector<unsigned char> rc4_encrypt(const std::vector<unsigned char>& data, const std::string& keyStr);
-        static std::vector<unsigned char> rc4_decrypt(const std::vector<unsigned char>& data, const std::string& keyStr);
+
+    class analysis_men {
     private:
-        static void rc4_ksa(const unsigned char *key, size_t key_len, std::vector<unsigned char> &S);
-        static unsigned char rc4_prga(std::vector<unsigned char> &S, size_t &i, size_t &j);
+        FileStructure::header header;
+        std::vector<FileStructure::entry> entry;
+        FileStructure::data data;
+        std::string key;
+        std::vector<uint8_t> file_data;
+        SilkCasket::Compress Compress;
+    public:
+        explicit analysis_men(std::vector<uint8_t> DATA, std::string KEY = "");
+        void printALL();
+        FileStructure::entry getEntry(const std::string& Name);
+        FileStructure::address getAddress(const SilkCasket::FileStructure::entry& Name);
+        static bool getIsFile(const SilkCasket::FileStructure::entry& Name);
+        bool getEncryption() const;
+        std::vector<uint8_t> getData(const std::string& Name);
+        void releaseFile(const std::string& Name, const std::filesystem::path& targetPath);
+        void releaseFolder(std::string Name, const std::filesystem::path& targetPath);
+        void releaseEntry(const std::filesystem::path& targetPath);
     };
+
 }

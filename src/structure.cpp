@@ -89,7 +89,7 @@ SilkCasket::FileStructure::header SilkCasket::FileStructure::header::deserialize
         std::cerr << "Invalid data: insufficient bytes for entryData" << std::endl;
     }
 
-    hdr.encryption = buffer[offset + 1] != 0;
+    hdr.encryption = buffer[offset++] != 0;
 
     return hdr;
 }

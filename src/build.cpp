@@ -45,22 +45,22 @@ void SilkCasket::builder::configureEntries(const std::filesystem::path &Path,
             configureEntries(_.path(), relativePath);
         } else if (is_regular_file(_)) {
             std::ifstream file(_.path(), std::ios::binary);
-            std::vector<uint8_t> Data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            std::vector<uint8_t> vector((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             file.close();
 
-            auto it = dataToIndexMap.find(Data);
+            auto it = dataToIndexMap.find(vector);
             int addressIndex;
             if (it != dataToIndexMap.end()) {
                 addressIndex = it->second;
             } else {
-                tempData.insert(tempData.end(), Data.begin(), Data.end());
+                tempData.insert(tempData.end(), vector.begin(), vector.end());
                 SilkCasket::FileStructure::address addr = {
-                        (size_t)(tempData.size() - Data.size()) + 48,
-                        (size_t)Data.size()
+                        (size_t)(tempData.size() - vector.size()) + 48,
+                        (size_t)vector.size()
                 };
                 addressIndex = (int)data.Address.size();
                 data.Address.push_back(addr);
-                dataToIndexMap[Data] = addressIndex;
+                dataToIndexMap[vector] = addressIndex;
             }
 
             SilkCasket::FileStructure::entry e = {
@@ -75,10 +75,9 @@ void SilkCasket::builder::configureEntries(const std::filesystem::path &Path,
 
 void SilkCasket::builder::build(const std::filesystem::path &Path, const std::filesystem::path &OutPath,
                                 SilkCasket::MODE Mode, size_t blockSize, bool entryEncryption, const std::string &key) {
-    auto cacheDir = Path.parent_path() / "cache";
-    std::filesystem::create_directories(cacheDir); // 创建缓存目录
+    auto cacheDir = SilkCasket::temp_path / "build_cache";
+    std::filesystem::create_directories(cacheDir);
 
-    // 遍历源目录中的文件并处理
     for (const auto &_ : std::filesystem::recursive_directory_iterator(Path))
     {
         if (_.is_regular_file())
@@ -91,15 +90,15 @@ void SilkCasket::builder::build(const std::filesystem::path &Path, const std::fi
             auto compressedData = SilkCasket::Compress::smartCompress(_.path(), Mode, blockSize);
             if (!compressedData.empty())
             {
-                Utils::Vuint8ToFile(cacheFilePath, compressedData);
-
                 if (entryEncryption)
                 {
-                    auto encryptionData = SilkCasket::encryptFile(key, compressedData);
+                    auto encryptionData = SilkCasket::RC4::rc4_encrypt(compressedData, key);
                     if (!encryptionData.empty())
                     {
                         Utils::Vuint8ToFile(cacheFilePath, encryptionData);
                     }
+                } else {
+                    Utils::Vuint8ToFile(cacheFilePath, compressedData);
                 }
             }
         }
@@ -107,15 +106,15 @@ void SilkCasket::builder::build(const std::filesystem::path &Path, const std::fi
 
     configureEntries(cacheDir);
 
-    SilkCasket::Compress Compress;
-    auto FileEntry = Compress.smartCompress(SilkCasket::FileStructure::serialize_entries(entry), Mode);
-    auto FileEntryData = Compress.smartCompress(SilkCasket::FileStructure::data::serialize(data), Mode);
+    auto FileEntry = SilkCasket::Compress::smartCompress(SilkCasket::FileStructure::serialize_entries(entry), Mode);
+    auto FileEntryData = SilkCasket::Compress::smartCompress(SilkCasket::FileStructure::data::serialize(data), Mode);
 
     header = {
             "SilkCasket",
             20250115,
             {(size_t)tempData.size() + 48, (size_t)FileEntry.size()},
             {(size_t)tempData.size() + (size_t)FileEntry.size() + 48, (size_t)FileEntryData.size()},
+            entryEncryption,
     };
 
     auto FileHeader = SilkCasket::FileStructure::header::serialize(header);

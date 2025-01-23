@@ -37,7 +37,7 @@ namespace SilkCasket::FileStructure  {
 
     struct header {
         const char *id = "SilkCasket";
-        int versionNumber = 20241122;
+        int versionNumber = 20250121;
         address entry{};
         address entryData{};
         bool encryption{};
