@@ -18,11 +18,11 @@
 | -------- | ------ | --- | ----- | ----- |
 | Android  | ✔     | ✔  | ✔    | ✔    |
 | Linux    | ✔     | ✔  | ✔    | ✔    |
-| Windows  | ?      | ?  | ?    | ?    |
+| Windows  | ✔      | ✔  | ?    | ?    |
 | Mac      | ?      | ?   | ?     | ?     |
 | iOS      | ?      | ×  | ?     | ×    |
 
-* Note: Windows, Mac, and iOS have not been tested. iOS does not support x86_64 and x86 architectures.
+* Note: Mac, and iOS have not been tested. iOS does not support x86_64 and x86 architectures.
 
 ## API
 

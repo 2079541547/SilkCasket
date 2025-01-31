@@ -356,6 +356,7 @@ std::vector<uint8_t> SilkCasket::LZ4::compress(const std::vector<uint8_t> &data,
     std::vector<uint8_t> compressedData(size);
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(compressedData.data()), size);
+    tempFileIn.close();
 
     std::filesystem::remove(tempFilePath);
 
@@ -403,6 +404,7 @@ std::vector<uint8_t> SilkCasket::LZ4::decompress(const std::vector<uint8_t> &com
     std::vector<uint8_t> decompressedData(size);
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(decompressedData.data()), size);
+    tempFileIn.close();
 
     std::filesystem::remove(tempFilePath);
 
@@ -451,6 +453,7 @@ std::vector<uint8_t> SilkCasket::Lizard::compress(const std::vector<uint8_t> &da
     std::vector<uint8_t> compressedData(size);
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(compressedData.data()), size);
+    tempFileIn.close();
 
     std::filesystem::remove(tempFilePath);
 
@@ -498,6 +501,7 @@ std::vector<uint8_t> SilkCasket::Lizard::decompress(const std::vector<uint8_t> &
     std::vector<uint8_t> decompressedData(size);
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(decompressedData.data()), size);
+    tempFileIn.close();
 
     std::filesystem::remove(tempFilePath);
 
@@ -505,7 +509,9 @@ std::vector<uint8_t> SilkCasket::Lizard::decompress(const std::vector<uint8_t> &
 }
 
 std::vector<uint8_t> SilkCasket::LZMA2Fast::compress(const std::vector<uint8_t> &data, size_t blockSize) {
-    auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lzma2-fast";
+
+    auto tempFilePath = std::filesystem::temp_directory_path() / "temp_compressed_data.lzma2-fast";
+
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
         throw std::runtime_error("Failed to open temporary file for compression.");
@@ -530,8 +536,9 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::compress(const std::vector<uint8_t> 
 
         if (compressedChunkSize > 0) {
             compressedChunk.resize(compressedChunkSize + sizeof(size_t));
-            tempFile.write(reinterpret_cast<const char*>(compressedChunk.data()), (long)compressedChunk.size());
+            tempFile.write(reinterpret_cast<const char*>(compressedChunk.data()), compressedChunk.size());
         } else {
+            tempFile.close();
             throw std::runtime_error("Compression of a chunk failed.");
         }
     }
@@ -547,13 +554,23 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::compress(const std::vector<uint8_t> 
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(compressedData.data()), size);
 
-    std::filesystem::remove(tempFilePath);
+    if (tempFileIn.fail()) {
+        throw std::runtime_error("Failed to read from temporary file.");
+    }
+
+    tempFileIn.close();
+
+    if (!std::filesystem::remove(tempFilePath)) {
+        std::cerr << "Warning: Failed to delete temporary file: " << tempFilePath << std::endl;
+    }
 
     return compressedData;
 }
 
 std::vector<uint8_t> SilkCasket::LZMA2Fast::decompress(const std::vector<uint8_t> &compressed) {
-    auto tempFilePath = SilkCasket::temp_path / "temp_compressed_data.lzma2-fast";
+
+    auto tempFilePath = std::filesystem::temp_directory_path() / "temp_compressed_data.lzma2-fast";
+
     std::ofstream tempFile(tempFilePath, std::ios::binary);
     if (!tempFile.is_open()) {
         throw std::runtime_error("Failed to open temporary file for decompression.");
@@ -577,9 +594,10 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::decompress(const std::vector<uint8_t
         );
 
         if (decompressedChunkSize > 0 && decompressedChunkSize == chunkSize) {
-            tempFile.write(reinterpret_cast<const char*>(decompressedChunk.data()), (long)decompressedChunk.size());
+            tempFile.write(reinterpret_cast<const char*>(decompressedChunk.data()), decompressedChunk.size());
             offset += compressedChunkSize;
         } else {
+            tempFile.close();
             throw std::runtime_error("Decompression of a chunk failed or unexpected size.");
         }
     }
@@ -595,7 +613,15 @@ std::vector<uint8_t> SilkCasket::LZMA2Fast::decompress(const std::vector<uint8_t
     tempFileIn.seekg(0, std::ios::beg);
     tempFileIn.read(reinterpret_cast<char*>(decompressedData.data()), size);
 
-    std::filesystem::remove(tempFilePath);
+    if (tempFileIn.fail()) {
+        throw std::runtime_error("Failed to read from temporary file.");
+    }
+
+    tempFileIn.close();
+
+    if (!std::filesystem::remove(tempFilePath)) {
+        std::cerr << "Warning: Failed to delete temporary file: " << tempFilePath << std::endl;
+    }
 
     return decompressedData;
 }
